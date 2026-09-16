@@ -41,12 +41,12 @@ public class RentalController {
         log.info("Call method updateRental with id"+ id);
         return ResponseEntity.ok().body(rentalService.updateRental(id,rental));
     }
-    @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Rental> deleteRental(
+    @DeleteMapping("/{id}/cancel")
+    public void rejectRental(
             @PathVariable("id") Long id
     ){
         log.info("Call method deleteRental with id"+ id);
-        return ResponseEntity.ok().body(rentalService.deleteRental(id));
+        rentalService.rejectRental(id,RentalStatus.REJECTED);
     }
     @PostMapping("/approve/{id}")
     public ResponseEntity<Rental> approveRental(@PathVariable Long id){

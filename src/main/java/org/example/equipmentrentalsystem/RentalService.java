@@ -1,101 +1,120 @@
 package org.example.equipmentrentalsystem;
 
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
+
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
+
 
 @Service
 public class RentalService {
-    private final Map<Long, Rental> rentalMap= new HashMap<>();
-    private final AtomicLong idCounter=new AtomicLong();
+    private final RentalRepository rentalRepository;
 
-    public Rental getEquipmentById(Long id) {
-        if(!rentalMap.containsKey(id)){
-            throw new IllegalArgumentException("No such id not found");
-        }
-        return rentalMap.get(id);
+    public RentalService(RentalRepository rentalRepository) {
+        this.rentalRepository = rentalRepository;
     }
 
+    public Rental getEquipmentById(Long id) {
+        var rent = rentalRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("No such id not found"));
+        return domainRental(rent);
+    }
+
+
     public List<Rental> getAllEquipment() {
-        return rentalMap.values().stream().toList();
+        var listRental = rentalRepository.findAll();
+        return listRental.stream()
+                .map(this::domainRental)
+                .toList();
     }
 
     public Rental createEquipmentRental(Rental rental) {
-        if(rental.id()!=null){
+        if (rental.id() != null) {
             throw new IllegalArgumentException("Id should be empty");
         }
-        if(rental.status()!=null){
+        if (rental.status() != null) {
             throw new IllegalArgumentException("Status should be REQUESTED");
         }
-        var createEquipment=new Rental(
-                idCounter.incrementAndGet(),
+        RentalEntity createEquipment = new RentalEntity(
+                null,
                 rental.userId(),
                 rental.equipment(),
                 rental.startDate(),
                 rental.endDate(),
                 RentalStatus.REQUESTED
         );
-        rentalMap.put(createEquipment.id(),createEquipment);
-        return createEquipment;
+        return domainRental(rentalRepository.save(createEquipment));
     }
 
     public Rental updateRental(Long id, Rental rental) {
-        if(!rentalMap.containsKey(id)){
-            throw new IllegalArgumentException("No such id not found");
-        }
-        var oldRental=rentalMap.get(id);
-        var newRental=new Rental(
-                oldRental.id(),
+        var oldRental = rentalRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("No such id not found"));
+
+        var newRental = new RentalEntity(
+                oldRental.getId(),
                 rental.userId(),
                 rental.equipment(),
                 rental.startDate(),
                 rental.endDate(),
-                oldRental.status()
+                oldRental.getStatus()
         );
-        rentalMap.put(oldRental.id(), newRental);
-        return newRental;
+        return domainRental(rentalRepository.save(newRental));
     }
 
-    public Rental deleteRental(Long id) {
-        if(rentalMap.containsKey(id)){
-            throw new IllegalArgumentException("Id not found");
+    public void rejectRental(Long id,RentalStatus status) {
+        if (!rentalRepository.existsById(id)) {
+            throw new EntityNotFoundException("No such id not found");
         }
-         return rentalMap.remove(id);
+        rentalRepository.setStatus(id,status);
+
+
     }
 
     public Rental approveRental(Long id) {
-        var rental= rentalMap.get(id);
-        if(!rentalMap.containsKey(id)){
-            throw new IllegalArgumentException("No such id not found");
-        }
-        if (rental.status()!=RentalStatus.REQUESTED){
+        var rental = rentalRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("No such id not found"));
+
+        if (rental.getStatus() != RentalStatus.REQUESTED) {
             throw new IllegalArgumentException("Status should be REQUESTED");
         }
-        if (isConflict(rental)){
+        if (isConflict(rental)) {
             throw new IllegalArgumentException("This rental has a conflict");
         }
-            var newRental=new Rental(
-                    rental.id(),
-                    rental.userId(),
-                    rental.equipment(),
-                    rental.startDate(),
-                    rental.endDate(),
-                    RentalStatus.APPROVED
-            );
-            rentalMap.put(newRental.id(),newRental);
+        var newRental = new RentalEntity(
+                rental.getId(),
+                rental.getUserId(),
+                rental.getEquipment(),
+                rental.getStartDate(),
+                rental.getEndDate(),
+                RentalStatus.APPROVED
+        );
+        return domainRental(rentalRepository.save(newRental));
 
-        return newRental;
     }
 
-    private boolean isConflict(Rental rental) {
-         return rentalMap.values().stream()
-                 .filter(r->!r.id().equals(rental.id()))
-                .filter(r->r.equipment().equals(rental.equipment()))
-                 .filter(r->r.status()== RentalStatus.APPROVED)
-                .anyMatch(r->r.startDate().isBefore(rental.endDate())&& rental.startDate().isBefore(r.endDate()));
+
+    private boolean isConflict(RentalEntity rental) {
+         return rentalRepository.findAll().stream()
+                 .filter(r->!r.getId().equals(rental.getId()))
+                 .filter(r->r.getEquipment().equals(rental.getEquipment()))
+                 .filter(r->r.getStatus()== RentalStatus.APPROVED)
+                 .anyMatch(r->r.getStartDate().isBefore(rental.getEndDate())&& rental.getStartDate().isBefore(r.getEndDate()));
+
     }
+
+    private Rental domainRental(RentalEntity rentalEntity) {
+        return new Rental(
+                rentalEntity.getId(),
+                rentalEntity.getUserId(),
+                rentalEntity.getEquipment(),
+                rentalEntity.getStartDate(),
+                rentalEntity.getEndDate(),
+                rentalEntity.getStatus()
+        );
+    }
+
 
 }
