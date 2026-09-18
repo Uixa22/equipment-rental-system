@@ -1,4 +1,4 @@
-package org.example.equipmentrentalsystem;
+package org.example.equipmentrentalsystem.web;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;

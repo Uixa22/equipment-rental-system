@@ -1,4 +1,4 @@
-package org.example.equipmentrentalsystem;
+package org.example.equipmentrentalsystem.web;
 
 import java.time.LocalDateTime;
 

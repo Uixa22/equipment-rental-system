@@ -1,4 +1,4 @@
-package org.example.equipmentrentalsystem;
+package org.example.equipmentrentalsystem.rental;
 
 public enum RentalStatus {
     REQUESTED,
