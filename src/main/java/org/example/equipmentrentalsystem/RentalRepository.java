@@ -12,6 +12,6 @@ update RentalEntity r
 set r.status=:status
 where r.id=:id
 """)
-    default void setStatus(@Param("id") Long id, @Param("status") RentalStatus rentalStatus) {
-    }
+    void setStatus(@Param("id") Long id, @Param("status") RentalStatus rentalStatus);
+
 }

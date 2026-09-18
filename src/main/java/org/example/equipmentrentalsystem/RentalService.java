@@ -1,6 +1,7 @@
 package org.example.equipmentrentalsystem;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -33,11 +34,11 @@ public class RentalService {
     }
 
     public Rental createEquipmentRental(Rental rental) {
-        if (rental.id() != null) {
-            throw new IllegalArgumentException("Id should be empty");
-        }
         if (rental.status() != null) {
             throw new IllegalArgumentException("Status should be REQUESTED");
+        }
+        if(!rental.startDate().isBefore(rental.endDate())){
+            throw new IllegalArgumentException("Start date should be before End date");
         }
         RentalEntity createEquipment = new RentalEntity(
                 null,
@@ -54,6 +55,9 @@ public class RentalService {
         var oldRental = rentalRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("No such id not found"));
 
+        if(!rental.startDate().isBefore(rental.endDate())){
+            throw new IllegalArgumentException("Start date should be before End date");
+        }
         var newRental = new RentalEntity(
                 oldRental.getId(),
                 rental.userId(),
@@ -64,11 +68,18 @@ public class RentalService {
         );
         return domainRental(rentalRepository.save(newRental));
     }
-
+    @Transactional
     public void rejectRental(Long id,RentalStatus status) {
-        if (!rentalRepository.existsById(id)) {
-            throw new EntityNotFoundException("No such id not found");
+
+        var rental = rentalRepository.findById(id)
+                .orElseThrow(()-> new EntityNotFoundException("Not found rental with id: "+ id));
+        if (rental.getStatus().equals(RentalStatus.APPROVED)){
+            throw new IllegalStateException("Cannot canceled rental with sate APPROVED, Contact with manager");
         }
+        if (rental.getStatus().equals(RentalStatus.REJECTED)){
+            throw new IllegalStateException("Cannot canceled reservation with sate CANCELLED, ");
+        }
+
         rentalRepository.setStatus(id,status);
 
 

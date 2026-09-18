@@ -1,5 +1,6 @@
 package org.example.equipmentrentalsystem;
 
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,14 +30,14 @@ public class RentalController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<Rental> createEquipmentRental(@RequestBody Rental rental){
+    public ResponseEntity<Rental> createEquipmentRental( @Valid @RequestBody Rental rental){
         log.info("Call method createEquipmentRental");
         return ResponseEntity.ok().body(rentalService.createEquipmentRental(rental));
     }
     @PutMapping("/update/{id}")
     public ResponseEntity<Rental> updateRental(
             @PathVariable("id") Long id,
-            @RequestBody Rental rental
+            @Valid @RequestBody Rental rental
     ){
         log.info("Call method updateRental with id"+ id);
         return ResponseEntity.ok().body(rentalService.updateRental(id,rental));
